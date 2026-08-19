@@ -1,9 +1,0 @@
-modLoader = "javafml"
-loaderVersion = "[46,)"
-license = "MIT"
-[[mods]]
-modId = "bakadanmaku"
-version = "${file.jarVersion}"
-displayName = "Baka Danmaku"
-authors = "TartaricAcid"
-description = "A Live Danmaku Mod"
