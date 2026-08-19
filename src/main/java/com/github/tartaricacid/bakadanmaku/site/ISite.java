@@ -18,7 +18,7 @@ public interface ISite {
      *
      * @param client WebSocket 客户端
      */
-    void initMessage(WebSocketClient client);
+    boolean initMessage(WebSocketClient client);
 
     /**
      * 发送心跳包的间隔

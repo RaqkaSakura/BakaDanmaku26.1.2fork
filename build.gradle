@@ -1,78 +1,58 @@
 plugins {
-    id 'eclipse'
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '5.1.+'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'java'
 }
 
-version = '2.1.1'
-group = 'com.github.tartaricacid'
-archivesBaseName = 'bakadanmaku-forge-1.20'
+version = project.mod_version + '+mc' + project.minecraft_version
+group = project.maven_group
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-minecraft {
-    mappings channel: 'official', version: '1.20'
-    runs {
-        client {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'forge.enabledGameTestNamespaces', 'bakadanmaku'
-            mods {
-                bakadanmaku {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        server {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'forge.enabledGameTestNamespaces', 'bakadanmaku'
-            mods {
-                bakadanmaku {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'bakadanmaku', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-            mods {
-                bakadanmaku {
-                    source sourceSets.main
-                }
-            }
-        }
-    }
+base {
+    archivesName = project.archives_base_name
 }
 
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+repositories {
+    mavenCentral()
+}
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.20-46.0.14'
-    minecraftLibrary 'io.netty:netty-codec-http:4.1.77.Final'
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-shadowJar {
-    dependencies {
-        include(dependency('io.netty:netty-codec-http:4.1.77.Final'))
+test {
+    useJUnitPlatform()
+}
+
+processResources {
+    def modVersion = project.version
+    def minecraftVersion = project.minecraft_version
+
+    inputs.property 'version', modVersion
+    inputs.property 'minecraft_version', minecraftVersion
+    filesMatching('fabric.mod.json') {
+        expand 'version': modVersion, 'minecraft_version': minecraftVersion
     }
-    finalizedBy 'reobfShadowJar'
-}
-
-assemble.dependsOn shadowJar
-
-reobf {
-    shadowJar {}
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 25
+    options.compilerArgs.add('-Xlint:deprecation')
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+publishing {
+    publications {
+        create('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
 }

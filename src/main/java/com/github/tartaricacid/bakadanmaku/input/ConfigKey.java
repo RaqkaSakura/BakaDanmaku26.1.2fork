@@ -1,35 +1,46 @@
 package com.github.tartaricacid.bakadanmaku.input;
 
+import com.github.tartaricacid.bakadanmaku.BakaDanmaku;
+import com.github.tartaricacid.bakadanmaku.config.ConfigManger;
+import com.github.tartaricacid.bakadanmaku.screen.DanmakuSettingsScreen;
 import com.github.tartaricacid.bakadanmaku.utils.OpenCloseDanmaku;
 import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.settings.KeyConflictContext;
-import net.minecraftforge.client.settings.KeyModifier;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
-@Mod.EventBusSubscriber(value = Dist.CLIENT)
 public class ConfigKey {
-    public static final KeyMapping CONFIG_KEY = new KeyMapping("key.bakadanmaku.config",
-            KeyConflictContext.IN_GAME,
-            KeyModifier.ALT,
+    private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
+            Identifier.fromNamespaceAndPath(BakaDanmaku.MOD_ID, "main")
+    );
+
+    public static final KeyMapping CONFIG_KEY = new KeyMapping(
+            "key.bakadanmaku.config",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_B,
-            "key.category.bakadanmaku");
+            CATEGORY
+    );
 
-    @SubscribeEvent
-    public static void onKeyboardInput(InputEvent.Key event) {
-        if (CONFIG_KEY.isDown()) {
-            OpenCloseDanmaku.closeDanmaku();
-            if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.sendSystemMessage(Component.literal("弹幕配置正在重载中……"));
+    public static final KeyMapping SETTINGS_KEY = new KeyMapping(
+            "key.bakadanmaku.settings",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_O,
+            CATEGORY
+    );
+
+    public static void registerKeyboardInput() {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (CONFIG_KEY.consumeClick()) {
+                if (client.player != null) {
+                    client.player.sendSystemMessage(Component.translatable("message.bakadanmaku.reloading"));
+                    OpenCloseDanmaku.reloadDanmaku();
+                }
             }
-            OpenCloseDanmaku.openDanmaku();
-        }
+            while (SETTINGS_KEY.consumeClick()) {
+                client.setScreen(new DanmakuSettingsScreen(client.screen, ConfigManger.getBilibiliConfig()));
+            }
+        });
     }
 }

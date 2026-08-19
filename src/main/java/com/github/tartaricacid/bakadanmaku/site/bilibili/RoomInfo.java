@@ -1,10 +1,6 @@
 package com.github.tartaricacid.bakadanmaku.site.bilibili;
 
-import org.apache.commons.io.IOUtils;
-
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,8 +29,7 @@ public class RoomInfo {
         String extractRoomId = null;
         String ownerId = null;
         try {
-            URL url = new URL(INIT_URL + "?id=" + roomId);
-            String data = IOUtils.toString(url, StandardCharsets.UTF_8);
+            String data = BilibiliHttpClient.get(INIT_URL + "?id=" + roomId);
             Matcher matcher = EXTRACT_ROOM_ID.matcher(data);
             if (matcher.find()) {
                 extractRoomId = matcher.group(1);

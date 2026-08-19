@@ -10,7 +10,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.TreeMap;
@@ -71,7 +70,7 @@ public class WbiSigner {
     static String getMixinKey() {
         try {
             // 获取 img_url 和 sub_url
-            HttpURLConnection conn = (HttpURLConnection) new URL(NAV_URL).openConnection();
+            HttpURLConnection conn = BilibiliHttpClient.openConnection(NAV_URL);
 
             conn.setRequestMethod("GET");
             conn.addRequestProperty(HttpHeaders.USER_AGENT, "Mozilla/5.0");

@@ -3,6 +3,8 @@ package com.github.tartaricacid.bakadanmaku.config;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
@@ -30,6 +32,9 @@ public class BilibiliConfig implements IConfig {
 
     @SerializedName("sc")
     private SpecialChat sc = new SpecialChat();
+
+    @SerializedName("display")
+    private Display display = new Display();
 
     public BilibiliConfig deco() {
         this.danmaku = danmaku.deco();
@@ -74,7 +79,181 @@ public class BilibiliConfig implements IConfig {
         return sc;
     }
 
+    public Display getDisplay() {
+        if (display == null) {
+            display = new Display();
+        }
+        return display;
+    }
+
+    public enum DisplayMode {
+        CHAT,
+        HUD
+    }
+
+    public static class Display {
+        @SerializedName("mode")
+        private DisplayMode mode = DisplayMode.CHAT;
+
+        @SerializedName("background_color")
+        private int backgroundColor = 15;
+
+        @SerializedName("background_opacity")
+        private int backgroundOpacity = 72;
+
+        @SerializedName("dialog_opacity")
+        private int dialogOpacity = 92;
+
+        @SerializedName("dialog_style")
+        private int dialogStyle = 0;
+
+        @SerializedName("show_avatars")
+        private boolean showAvatars = true;
+
+        @SerializedName("custom_font")
+        private boolean customFont = true;
+
+        @SerializedName("text_size")
+        private int textSize = 100;
+
+        @SerializedName("text_color")
+        private int textColor = 0;
+
+        @SerializedName("window_x")
+        private int windowX = 20;
+
+        @SerializedName("window_y")
+        private int windowY = 20;
+
+        @SerializedName("window_width")
+        private int windowWidth = 360;
+
+        @SerializedName("window_height")
+        private int windowHeight = 180;
+
+        public DisplayMode getMode() {
+            return mode;
+        }
+
+        public void setMode(DisplayMode mode) {
+            this.mode = mode == null ? DisplayMode.CHAT : mode;
+        }
+
+        public int getBackgroundColor() {
+            return Math.max(0, Math.min(16, backgroundColor));
+        }
+
+        public void setBackgroundColor(int backgroundColor) {
+            this.backgroundColor = Math.max(0, Math.min(16, backgroundColor));
+        }
+
+        public int getBackgroundOpacity() {
+            return Math.max(0, Math.min(100, backgroundOpacity));
+        }
+
+        public void setBackgroundOpacity(int backgroundOpacity) {
+            this.backgroundOpacity = Math.max(0, Math.min(100, backgroundOpacity));
+        }
+
+        public int getDialogOpacity() {
+            return Math.max(0, Math.min(100, dialogOpacity));
+        }
+
+        public void setDialogOpacity(int dialogOpacity) {
+            this.dialogOpacity = Math.max(0, Math.min(100, dialogOpacity));
+        }
+
+        public int getDialogStyle() {
+            if (dialogStyle < 0 || dialogStyle > 16) {
+                dialogStyle = 0;
+            }
+            return dialogStyle;
+        }
+
+        public void setDialogStyle(int dialogStyle) {
+            this.dialogStyle = Math.max(0, Math.min(16, dialogStyle));
+        }
+
+        public void applySkyNotePreset() {
+            backgroundColor = 16;
+            dialogStyle = 16;
+        }
+
+        public boolean isShowAvatars() {
+            return showAvatars;
+        }
+
+        public void setShowAvatars(boolean showAvatars) {
+            this.showAvatars = showAvatars;
+        }
+
+        public boolean isCustomFont() {
+            return customFont;
+        }
+
+        public void setCustomFont(boolean customFont) {
+            this.customFont = customFont;
+        }
+
+        public int getTextSize() {
+            return Math.max(50, Math.min(200, textSize));
+        }
+
+        public void setTextSize(int textSize) {
+            this.textSize = Math.max(50, Math.min(200, textSize));
+        }
+
+        public int getTextColor() {
+            return Math.max(0, Math.min(15, textColor));
+        }
+
+        public void setTextColor(int textColor) {
+            this.textColor = Math.max(0, Math.min(15, textColor));
+        }
+
+        public int getWindowX() {
+            return Math.max(0, windowX);
+        }
+
+        public void setWindowX(int windowX) {
+            this.windowX = Math.max(0, windowX);
+        }
+
+        public int getWindowY() {
+            return Math.max(0, windowY);
+        }
+
+        public void setWindowY(int windowY) {
+            this.windowY = Math.max(0, windowY);
+        }
+
+        public int getWindowWidth() {
+            return Math.max(220, windowWidth);
+        }
+
+        public void setWindowWidth(int windowWidth) {
+            this.windowWidth = Math.max(220, windowWidth);
+        }
+
+        public int getWindowHeight() {
+            return Math.max(120, windowHeight);
+        }
+
+        public void setWindowHeight(int windowHeight) {
+            this.windowHeight = Math.max(120, windowHeight);
+        }
+    }
+
     public static class Room {
+        private static final List<String> COOKIE_KEYS = List.of(
+                "SESSDATA",
+                "DedeUserID",
+                "DedeUserID__ckMd5",
+                "bili_jct",
+                "buvid3",
+                "buvid4"
+        );
+
         @SerializedName("id")
         private int id = -1;
 
@@ -94,7 +273,7 @@ public class BilibiliConfig implements IConfig {
         private String auth = "{\"roomid\": ${roomId}}";
 
         @SerializedName("cookie")
-        private Map<String, String> cookie;
+        private Map<String, String> cookie = createCookieTemplate();
 
         public int getId() {
             return id;
@@ -133,6 +312,27 @@ public class BilibiliConfig implements IConfig {
         }
 
         public Map<String, String> getCookie() {
+            return cookie;
+        }
+
+        public boolean ensureCookieTemplate() {
+            boolean changed = false;
+            if (cookie == null) {
+                cookie = new LinkedHashMap<>();
+                changed = true;
+            }
+            for (String key : COOKIE_KEYS) {
+                if (!cookie.containsKey(key)) {
+                    cookie.put(key, "");
+                    changed = true;
+                }
+            }
+            return changed;
+        }
+
+        private static Map<String, String> createCookieTemplate() {
+            Map<String, String> cookie = new LinkedHashMap<>();
+            COOKIE_KEYS.forEach(key -> cookie.put(key, ""));
             return cookie;
         }
     }

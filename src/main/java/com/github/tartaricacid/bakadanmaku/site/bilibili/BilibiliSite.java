@@ -2,8 +2,8 @@ package com.github.tartaricacid.bakadanmaku.site.bilibili;
 
 import com.github.tartaricacid.bakadanmaku.BakaDanmaku;
 import com.github.tartaricacid.bakadanmaku.config.BilibiliConfig;
+import com.github.tartaricacid.bakadanmaku.event.post.DanmakuMessage;
 import com.github.tartaricacid.bakadanmaku.event.post.SendDanmakuEvent;
-import com.github.tartaricacid.bakadanmaku.event.post.UpdatePopularInfoEvent;
 import com.github.tartaricacid.bakadanmaku.site.ISite;
 import com.github.tartaricacid.bakadanmaku.utils.BilibiliMsgSplit;
 import com.github.tartaricacid.bakadanmaku.utils.Decompressor;
@@ -15,7 +15,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import net.minecraftforge.common.MinecraftForge;
 import org.apache.commons.io.IOUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -49,7 +48,8 @@ public class BilibiliSite implements ISite {
 
     public BilibiliSite(BilibiliConfig config) {
         this.config = config;
-        this.gson = new GsonBuilder().registerTypeAdapter(String.class, new MessageDeserializer(config)).create();
+        this.gson = new GsonBuilder().registerTypeAdapter(DanmakuMessage.class,
+                new MessageDeserializer(config)).create();
     }
 
     @Override
@@ -58,15 +58,14 @@ public class BilibiliSite implements ISite {
     }
 
     @Override
-    public void initMessage(WebSocketClient client) {
+    public boolean initMessage(WebSocketClient client) {
         byte[] message = WebSocketAuth.newAuth(config.getRoom());
         if (message == null) {
-            MinecraftForge.EVENT_BUS.post(new SendDanmakuEvent("房间获取失败！请检查是否输入错误，或者网络有问题"));
-            return;
+            SendDanmakuEvent.send("房间获取失败！请检查是否输入错误，或者网络有问题");
+            return false;
         } else {
-            MinecraftForge.EVENT_BUS.post(new SendDanmakuEvent("房间获取成功！正在连接弹幕！"));
+            SendDanmakuEvent.send("房间获取成功！正在连接弹幕！");
         }
-
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(HEADER_LENGTH + message.length);
         buf.writeShort(HEADER_LENGTH);
@@ -75,6 +74,7 @@ public class BilibiliSite implements ISite {
         buf.writeInt(SEQUENCE_ID);
         buf.writeBytes(message);
         client.sendMessage(buf);
+        return true;
     }
 
     @Override
@@ -127,7 +127,6 @@ public class BilibiliSite implements ISite {
         int operation = data.getInt(OPERATION_OFFSET);
 
         if (operation == POPULAR_OPERATION) {
-            MinecraftForge.EVENT_BUS.post(new UpdatePopularInfoEvent(data.getInt(BODY_OFFSET)));
             return;
         }
 
@@ -145,9 +144,9 @@ public class BilibiliSite implements ISite {
 
     private void handStringMessage(String message) {
         try {
-            String str = gson.fromJson(message, String.class);
-            if (str != null) {
-                MinecraftForge.EVENT_BUS.post(new SendDanmakuEvent(str));
+            DanmakuMessage danmaku = gson.fromJson(message, DanmakuMessage.class);
+            if (danmaku != null) {
+                SendDanmakuEvent.EVENT.invoker().register(danmaku);
             }
         } catch (JsonSyntaxException ignore) {
         }
